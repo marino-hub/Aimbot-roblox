@@ -35,6 +35,7 @@ local function setupAdminPanel(character)
 
     local Title = Instance.new("TextLabel")
     Title.Size = UDim2.new(0, 160, 0, 30)
+    Title.Position = UDim2.new(0, 0, 0, 0)
     Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     Title.Text = "PANEL RIVALS MÓVIL"
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -46,14 +47,14 @@ local function setupAdminPanel(character)
     TitleCorner.CornerRadius = UDim.new(0, 12)
     TitleCorner.Parent = Title
 
-    -- Botón de Minimizar (-)
+    -- Botón de Minimizar (-) corregido y visible
     local MinBtn = Instance.new("TextButton")
-    MinBtn.Size = UDim2.new(0, 30, 0, 30)
-    MinBtn.Position = UDim2.new(0, 165, 0, 0)
+    MinBtn.Size = UDim2.new(0, 35, 0, 30)
+    MinBtn.Position = UDim2.new(0, 162, 0, 0)
     MinBtn.BackgroundColor3 = Color3.fromRGB(180, 120, 40)
     MinBtn.Text = "-"
     MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    MinBtn.TextSize = 16
+    MinBtn.TextSize = 18
     MinBtn.Font = Enum.Font.GothamBold
     MinBtn.Parent = MainFrame
 
@@ -108,7 +109,7 @@ local function setupAdminPanel(character)
     -- Botones de Subir y Bajar para el vuelo
     local UpBtn = Instance.new("TextButton")
     UpBtn.Size = UDim2.new(0, 85, 0, 28)
-    UpBtn.Position = UDim2.new(0, 10, 0, 310)
+    UpBtn.Position = UDim2.new(0, 10, 0, 312)
     UpBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 80)
     UpBtn.Text = "SUBIR"
     UpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -119,7 +120,7 @@ local function setupAdminPanel(character)
 
     local DownBtn = Instance.new("TextButton")
     DownBtn.Size = UDim2.new(0, 85, 0, 28)
-    DownBtn.Position = UDim2.new(0, 105, 0, 310)
+    DownBtn.Position = UDim2.new(0, 105, 0, 312)
     DownBtn.BackgroundColor3 = Color3.fromRGB(160, 80, 40)
     DownBtn.Text = "BAJAR"
     DownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -154,7 +155,6 @@ local function setupAdminPanel(character)
     local upState = false
     local downState = false
     local espHighlights = {}
-    local lastCamPos = camera.CFrame
 
     -- Conexiones de los Botones
     FlyBtn.MouseButton1Click:Connect(function()
@@ -252,7 +252,7 @@ local function setupAdminPanel(character)
         return closestTarget
     end
 
-    -- Bucle principal de físicas y características del juego
+    -- Bucle principal del panel
     local connection
     connection = RunService.RenderStepped:Connect(function()
         if not character or not character.Parent or not humanoidRootPart or not humanoidRootPart.Parent or humanoid.Health <= 0 then
@@ -298,32 +298,23 @@ local function setupAdminPanel(character)
             end
         end
 
-        -- Anti-Recoil Estricto (Bloqueo de sacudida vertical de la cámara)
-        if noRecoil and not stronglock then
-            local currentCF = camera.CFrame
-            -- Si la cámara se desplaza verticalmente de forma repentina por el disparo, fijamos la inclinación previa
-            camera.CFrame = CFrame.new(currentCF.Position) * CFrame.Angles(lastCamPos:ToEulerAnglesXYZ())
-        else
-            lastCamPos = camera.CFrame
-        end
-
-        -- Anti-Spread Avanzado (Forzar precisión absoluta en objetos de raycast del arma)
-        if noSpread then
-            pcall(function()
-                local tool = character:FindFirstChildOfClass("Tool")
-                if tool then
-                    -- Busca módulos o tablas internas de dispersión en el arma
-                    for _, obj in ipairs(tool:GetDescendants()) do
-                        if obj:IsA("Vector3Value") or obj:IsA("NumberValue") then
-                            local n = obj.Name:lower()
-                            if n:find("spread") or n:find("offset") or n:find("cone") or n:find("inaccuracy") then
-                                obj.Value = 0
-                            end
+        -- Control seguro de No Recoil y No Spread sobre herramientas activas
+        pcall(function()
+            local tool = character:FindFirstChildOfClass("Tool")
+            if tool then
+                for _, obj in ipairs(tool:GetDescendants()) do
+                    if obj:IsA("NumberValue") or obj:IsA("IntValue") then
+                        local name = obj.Name:lower()
+                        if noRecoil and (name:find("recoil") or name:find("kick")) then
+                            obj.Value = 0
+                        end
+                        if noSpread and (name:find("spread") or name:find("deviation") or name:find("accuracy")) then
+                            obj.Value = 0
                         end
                     end
                 end
-            end)
-        end
+            end
+        end)
     end)
 end
 
