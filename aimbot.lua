@@ -61,7 +61,7 @@ local function setupAdminPanel(character)
     MinCorner.CornerRadius = UDim.new(0, 8)
     MinCorner.Parent = MinBtn
 
-    -- Mini Ventana flotante para maximizar (Aparece al minimizar)
+    -- Mini Ventana flotante para maximizar
     local MiniFrame = Instance.new("TextButton")
     MiniFrame.Size = UDim2.new(0, 110, 0, 35)
     MiniFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
@@ -131,7 +131,7 @@ local function setupAdminPanel(character)
     -- Lógica de Minimizar y Maximizar
     MinBtn.MouseButton1Click:Connect(function()
         MainFrame.Visible = false
-        MiniFrame.Position = MainFrame.Position -- Mantiene la misma ubicación aproximada
+        MiniFrame.Position = MainFrame.Position
         MiniFrame.Visible = true
     end)
 
@@ -154,6 +154,7 @@ local function setupAdminPanel(character)
     local upState = false
     local downState = false
     local espHighlights = {}
+    local lastCamPos = camera.CFrame
 
     -- Conexiones de los Botones
     FlyBtn.MouseButton1Click:Connect(function()
@@ -251,7 +252,7 @@ local function setupAdminPanel(character)
         return closestTarget
     end
 
-    -- Bucle principal optimizado
+    -- Bucle principal de físicas y características del juego
     local connection
     connection = RunService.RenderStepped:Connect(function()
         if not character or not character.Parent or not humanoidRootPart or not humanoidRootPart.Parent or humanoid.Health <= 0 then
@@ -297,24 +298,26 @@ local function setupAdminPanel(character)
             end
         end
 
-        -- Antirecoil
-        if noRecoil then
+        -- Anti-Recoil Estricto (Bloqueo de sacudida vertical de la cámara)
+        if noRecoil and not stronglock then
             local currentCF = camera.CFrame
-            if not stronglock then
-                camera.CFrame = CFrame.new(currentCF.Position) * currentCF.Rotation
-            end
+            -- Si la cámara se desplaza verticalmente de forma repentina por el disparo, fijamos la inclinación previa
+            camera.CFrame = CFrame.new(currentCF.Position) * CFrame.Angles(lastCamPos:ToEulerAnglesXYZ())
+        else
+            lastCamPos = camera.CFrame
         end
 
-        -- Anti-Spread
+        -- Anti-Spread Avanzado (Forzar precisión absoluta en objetos de raycast del arma)
         if noSpread then
             pcall(function()
                 local tool = character:FindFirstChildOfClass("Tool")
                 if tool then
-                    for _, desc in ipairs(tool:GetDescendants()) do
-                        if desc:IsA("NumberValue") or desc:IsA("IntValue") then
-                            local name = desc.Name:lower()
-                            if name:find("spread") or name:find("accuracy") or name:find("deviation") then
-                                desc.Value = 0
+                    -- Busca módulos o tablas internas de dispersión en el arma
+                    for _, obj in ipairs(tool:GetDescendants()) do
+                        if obj:IsA("Vector3Value") or obj:IsA("NumberValue") then
+                            local n = obj.Name:lower()
+                            if n:find("spread") or n:find("offset") or n:find("cone") or n:find("inaccuracy") then
+                                obj.Value = 0
                             end
                         end
                     end
